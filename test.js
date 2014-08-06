@@ -6,9 +6,9 @@ var hyperquest = require('hyperquest')
 var concat = require('concat-stream')
 
 function runRequest(path, done){
-  var req = hyperquest('http://127.0.0.1:8080' + path).pipe(concat(result){
+  var req = hyperquest('http://127.0.0.1:8080' + path).pipe(concat(function(result){
     done(null, result.toString())
-  })
+  }))
   req.on('error', done)
 }
 
@@ -19,7 +19,18 @@ tape('proxy the requests', function(t){
     next(null, 'http://127.0.0.1:' + port)
   })
 
-  var router = http.createServer(proxy)
+  var router = http.createServer(proxy.handler())
+
+  var reqs = {}
+  var routes = {}
+
+  proxy.on('request', function(req, res){
+    reqs[req.url] = true
+  })
+
+  proxy.on('route', function(req, address){
+    routes[req.url] = address
+  })
 
   var serverA = http.createServer(function(req, res){
     res.end('serverA')
@@ -30,8 +41,8 @@ tape('proxy the requests', function(t){
   })
 
   router.listen(8080)
-  router.listen(8081)
-  router.listen(8082)
+  serverA.listen(8081)
+  serverB.listen(8082)
 
   setTimeout(function(){
     runRequest('/a', function(err, result){
@@ -48,6 +59,13 @@ tape('proxy the requests', function(t){
           return
         }
         t.equal(result, 'serverB')
+        t.ok(reqs['/a'], 'req a')
+        t.ok(reqs['/b'], 'req b')
+        t.equal(routes['/a'], 'http://127.0.0.1:8081', 'route a')
+        t.equal(routes['/b'], 'http://127.0.0.1:8082', 'route b')
+        router.close()
+        serverA.close()
+        serverB.close()
         t.end()
       })
     })

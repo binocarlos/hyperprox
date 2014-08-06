@@ -18,6 +18,8 @@ HyperProxy.prototype.proxy = function(req, res, address){
 	if(address.indexOf('http')!=0){
 		address = 'http://' + address
 	}
+	console.log('-------------------------------------------');
+	console.log(address + req.url)
 	var proxy = hyperquest(address + req.url, {
 		method:req.method,
 		headers:req.headers
@@ -30,7 +32,7 @@ HyperProxy.prototype.proxy = function(req, res, address){
 	}
 	proxy.on('error', function(err){
 		res.statusCode = 500
-		res.end(err)
+		res.end(err.toString())
 	})
 }
 
