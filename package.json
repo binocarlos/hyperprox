@@ -20,5 +20,12 @@
   "bugs": {
     "url": "https://github.com/binocarlos/hyperproxy/issues"
   },
-  "homepage": "https://github.com/binocarlos/hyperproxy"
+  "homepage": "https://github.com/binocarlos/hyperproxy",
+  "devDependencies": {
+    "concat-stream": "^1.4.6",
+    "tape": "^2.14.0"
+  },
+  "dependencies": {
+    "hyperquest": "^0.3.0"
+  }
 }

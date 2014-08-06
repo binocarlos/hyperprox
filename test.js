@@ -4,8 +4,6 @@ var http = require('http')
 var url = require('url')
 var hyperquest = require('hyperquest')
 var concat = require('concat-stream')
-var async = require('async')
-
 
 function runRequest(path, done){
   var req = hyperquest('http://127.0.0.1:8080' + path).pipe(concat(result){
