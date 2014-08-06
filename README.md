@@ -17,14 +17,21 @@ var http = require("http")
 var hyperProxy = require('hyperproxy')
 
 var proxy = hyperproxy(function(req, next){
-  // do some (maybe async) logic to
   // calculate the proxy destination
   var port = req.url=='/a' ? 8081 : 8082
-  next(null, 'http://127.0.0.1:' + port)
+  return 'http://127.0.0.1:' + port
 })
 
 // the front facing web server
-var router = http.createServer(proxy)
+var router = http.createServer(proxy.handler())
+
+proxy.on('request', function(req, res){
+	
+})
+
+proxy.on('route', function(req, address){
+	
+})
 
 var serverA = http.createServer(function(req, res){
   res.end('serverA')
@@ -41,9 +48,19 @@ serverB.listen(8082)
 
 ## api
 
-### `var proxy = hyperproxy(function(req, next){})`
+#### `var proxy = hyperproxy(function(req, next){})`
 
 Create a new proxy by passing a function that will resolve the backend address and pass it to the 'next' function
+
+## events
+
+#### `proxy.on('request', function(req, res){})`
+
+when a request arrives at the proxy
+
+#### `proxy.on('route', function(req, address){})`
+
+Once a routing decision has been made
 
 ## license
 
