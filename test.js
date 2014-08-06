@@ -15,8 +15,11 @@ function runRequest(path, done){
 tape('proxy the requests', function(t){
 
   var proxy = hyperproxy(function(req, next){
+    if(req.url=='/c'){
+      return null
+    }
     var port = req.url=='/a' ? 8081 : 8082
-    next(null, 'http://127.0.0.1:' + port)
+    return 'http://127.0.0.1:' + port
   })
 
   var router = http.createServer(proxy.handler())
@@ -63,10 +66,20 @@ tape('proxy the requests', function(t){
         t.ok(reqs['/b'], 'req b')
         t.equal(routes['/a'], 'http://127.0.0.1:8081', 'route a')
         t.equal(routes['/b'], 'http://127.0.0.1:8082', 'route b')
-        router.close()
-        serverA.close()
-        serverB.close()
-        t.end()
+
+        runRequest('/c', function(err, result){
+          if(err){
+            t.fail(err, 'b')
+            t.end()
+            return
+          }
+          t.equal(result, 'no backend found', 'no result ok')
+          router.close()
+          serverA.close()
+          serverB.close()
+          t.end()
+        })
+        
       })
     })
   }, 100)

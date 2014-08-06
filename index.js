@@ -18,8 +18,6 @@ HyperProxy.prototype.proxy = function(req, res, address){
 	if(address.indexOf('http')!=0){
 		address = 'http://' + address
 	}
-	console.log('-------------------------------------------');
-	console.log(address + req.url)
 	var proxy = hyperquest(address + req.url, {
 		method:req.method,
 		headers:req.headers
@@ -40,17 +38,17 @@ HyperProxy.prototype.handler = function(){
 	var self = this;
 	return function(req, res){
 		self.emit('request', req, res)
-		self._resolve(req, function(err, address){
-			if(err){
-				res.statusCode = 500
-				res.end(err)
-				return
-			}
-			self.emit('route', req, address)
-			self.proxy(req, res, address)
-		})
+		var address = self._resolve(req)
+		if(!address){
+			res.statusCode = 404
+			res.end('no backend found')
+			return
+		}
+		self.emit('route', req, address)
+		self.proxy(req, res, address)
 	}
-}		
+}
+
 module.exports = function(resolve){
 	return new HyperProxy(resolve)
 }
