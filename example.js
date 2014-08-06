@@ -1,7 +1,7 @@
 var http = require("http")
-var hyperproxy = require('./')
+var hyperprox = require('./')
 
-var proxy = hyperproxy(function(req, next){
+var proxy = hyperprox(function(req, next){
   // do some (maybe async) logic to
   // calculate the proxy destination
   var port = req.url=='/a' ? 8081 : 8082

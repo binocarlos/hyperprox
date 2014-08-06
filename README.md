@@ -1,5 +1,5 @@
-hyperproxy
-----------
+hyperprox
+---------
 
 simple HTTP proxy based on [hyperquest](https://github.com/substack/hyperquest)
 
@@ -14,9 +14,9 @@ Create a proxy by passing a function that will resolve what backend to use to th
 
 ```js
 var http = require("http")
-var hyperProxy = require('hyperproxy')
+var hyperprox = require('hyperprox')
 
-var proxy = hyperproxy(function(req, next){
+var proxy = hyperprox(function(req, next){
   // calculate the proxy destination
   var port = req.url=='/a' ? 8081 : 8082
   return 'http://127.0.0.1:' + port
@@ -48,7 +48,7 @@ serverB.listen(8082)
 
 ## api
 
-#### `var proxy = hyperproxy(function(req, next){})`
+#### `var proxy = hyperprox(function(req, next){})`
 
 Create a new proxy by passing a function that will resolve the backend address and pass it to the 'next' function
 

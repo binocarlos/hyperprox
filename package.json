@@ -1,5 +1,5 @@
 {
-  "name": "hyperproxy",
+  "name": "hyperprox",
   "version": "0.1.0",
   "description": "simple HTTP proxy based on hyperquest",
   "main": "index.js",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/binocarlos/hyperproxy.git"
+    "url": "https://github.com/binocarlos/hyperprox.git"
   },
   "keywords": [
     "http",
@@ -18,9 +18,9 @@
   "author": "Kai Davenport",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/binocarlos/hyperproxy/issues"
+    "url": "https://github.com/binocarlos/hyperprox/issues"
   },
-  "homepage": "https://github.com/binocarlos/hyperproxy",
+  "homepage": "https://github.com/binocarlos/hyperprox",
   "devDependencies": {
     "concat-stream": "^1.4.6",
     "tape": "^2.14.0"
