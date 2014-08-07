@@ -1,3 +1,5 @@
+var fs = require('fs')
+var path = require('path')
 var hyperproxy = require('./')
 var tape     = require('tape')
 var http = require('http')
@@ -14,7 +16,7 @@ function runRequest(path, done){
 
 tape('proxy the requests', function(t){
 
-  var proxy = hyperproxy(function(req, next){
+  var proxy = hyperproxy(function(req){
     if(req.url=='/c'){
       return null
     }
@@ -82,5 +84,42 @@ tape('proxy the requests', function(t){
         
       })
     })
+  }, 100)
+})
+
+
+
+tape('async router', function(t){
+
+  var proxy = hyperproxy(function(req, next){
+
+    setTimeout(function(){
+      next(null, 'http://127.0.0.1:8081')
+    }, 100)
+    
+  })
+
+  var router = http.createServer(proxy.handler())
+  var server = http.createServer(function(req, res){
+    req.pipe(res)
+  })
+
+  router.listen(8080)
+  server.listen(8081)
+
+  setTimeout(function(){
+    var req = hyperquest.post('http://127.0.0.1:8080/')
+    var file = fs.createReadStream(path.join(__dirname, 'package.json'))
+
+    file.pipe(req).pipe(concat(function(result){
+      console.log('-------------------------------------------');
+      console.log(result.toString())
+      t.end()
+    }))
+    req.on('error', function(err){
+      t.fail(err, 'error')
+      t.end()
+    })
+    
   }, 100)
 })

@@ -16,7 +16,7 @@ Create a proxy by passing a function that will resolve what backend to use to th
 var http = require("http")
 var hyperprox = require('hyperprox')
 
-var proxy = hyperprox(function(req, next){
+var proxy = hyperprox(function(req){
   // calculate the proxy destination
   var port = req.url=='/a' ? 8081 : 8082
   return 'http://127.0.0.1:' + port
@@ -44,6 +44,20 @@ var serverB = http.createServer(function(req, res){
 router.listen(8080)
 serverA.listen(8081)
 serverB.listen(8082)
+```
+
+## async routing
+
+Your routing function can be asynchronous - this means you can ask an external service for routing data:
+
+If you define `next` in the parameters then it will be treated as an async router.
+
+```js
+var proxy = hyperprox(function(req, next){
+
+	loadRoute(req.url, next)
+	
+})
 ```
 
 ## api
