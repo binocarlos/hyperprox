@@ -107,19 +107,25 @@ tape('async router', function(t){
   router.listen(8080)
   server.listen(8081)
 
+  function stopServers(){
+    router.close()
+    server.close()
+  }
+
   setTimeout(function(){
     var req = hyperquest.post('http://127.0.0.1:8080/')
     var file = fs.createReadStream(path.join(__dirname, 'package.json'))
 
     file.pipe(req).pipe(concat(function(result){
-      console.log('-------------------------------------------');
-      console.log(result.toString())
+      stopServers()
+      t.equal(result.toString(), fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'), 'package.json read')
       t.end()
     }))
     req.on('error', function(err){
+      stopServers()
       t.fail(err, 'error')
       t.end()
     })
-    
+
   }, 100)
 })

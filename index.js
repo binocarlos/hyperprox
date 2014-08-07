@@ -9,7 +9,9 @@ function HyperProxy(resolve){
 	if(!resolve){
 		throw new Error('resolve function required')
 	}
+
 	this._resolve = resolve
+	this._isAsync = resolve.length>=2
 }
 
 util.inherits(HyperProxy, EventEmitter)
@@ -34,18 +36,34 @@ HyperProxy.prototype.proxy = function(req, res, address){
 	})
 }
 
+HyperProxy.prototype.resolve = function(req, done){
+	var self = this;
+	if(!this._isAsync){
+		return done(null, this._resolve(req))
+	}
+	else{
+		this._resolve(req, done)
+	}
+}
+
 HyperProxy.prototype.handler = function(){
 	var self = this;
 	return function(req, res){
 		self.emit('request', req, res)
-		var address = self._resolve(req)
-		if(!address){
-			res.statusCode = 404
-			res.end('no backend found')
-			return
-		}
-		self.emit('route', req, address)
-		self.proxy(req, res, address)
+		self.resolve(req, function(err, address){
+			if(err){
+				res.statusCode = 500
+				res.end(err)
+				return
+			}
+			if(!address){
+				res.statusCode = 404
+				res.end('no backend found')
+				return
+			}
+			self.emit('route', req, address)
+			self.proxy(req, res, address)
+		})
 	}
 }
 
