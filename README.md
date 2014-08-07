@@ -55,7 +55,9 @@ If you define `next` in the parameters then it will be treated as an async route
 ```js
 var proxy = hyperprox(function(req, next){
 
-	loadRoute(req.url, next)
+	loadRoute(req.url, function(err, address){
+		next(err, address)
+	})
 	
 })
 ```
