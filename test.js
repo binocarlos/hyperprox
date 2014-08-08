@@ -15,7 +15,6 @@ function runRequest(path, done){
   req.on('error', done)
 }
 
-/*
 tape('proxy the requests', function(t){
 
   var proxy = hyperproxy(function(req){
@@ -131,7 +130,7 @@ tape('async router', function(t){
 
   }, 100)
 })
-*/
+
 tape('duplex mode', function(t){
 
   var backends = hyperproxy(function(req, next){
