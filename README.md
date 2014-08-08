@@ -58,7 +58,7 @@ var backends = hyperprox(function(req){
 })
 
 var router = http.createServer(function(req, res){
-	var proxy = backends.duplex(req)
+	var proxy = backends.duplex(req, res)
 
 	// filter the request body
 	var inputFilter = through(function(chunk, enc, next){

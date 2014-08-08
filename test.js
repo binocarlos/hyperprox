@@ -4,6 +4,7 @@ var hyperproxy = require('./')
 var tape     = require('tape')
 var http = require('http')
 var url = require('url')
+var through = require('through2')
 var hyperquest = require('hyperquest')
 var concat = require('concat-stream')
 
@@ -14,6 +15,7 @@ function runRequest(path, done){
   req.on('error', done)
 }
 
+/*
 tape('proxy the requests', function(t){
 
   var proxy = hyperproxy(function(req){
@@ -119,6 +121,63 @@ tape('async router', function(t){
     file.pipe(req).pipe(concat(function(result){
       stopServers()
       t.equal(result.toString(), fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'), 'package.json read')
+      t.end()
+    }))
+    req.on('error', function(err){
+      stopServers()
+      t.fail(err, 'error')
+      t.end()
+    })
+
+  }, 100)
+})
+*/
+tape('duplex mode', function(t){
+
+  var backends = hyperproxy(function(req, next){
+
+    setTimeout(function(){
+      next(null, 'http://127.0.0.1:8081')
+    }, 100)
+    
+  })
+
+  var router = http.createServer(function(req, res){
+    var duplex = backends.duplex(req, res)
+
+    var inputFilter = through(function(chunk, enc, next){
+      console.log(chunk)
+      next()
+    })
+
+
+    var outputFilter = through(function(chunk, enc, next){
+      console.log(chunk)
+      next()
+    })
+
+    req.pipe(inputFilter).pipe(proxy).pipe(outputFilter).pipe(res)
+  })
+
+  var server = http.createServer(function(req, res){
+    req.pipe(res)
+  })
+
+  router.listen(8080)
+  server.listen(8081)
+
+  function stopServers(){
+    router.close()
+    server.close()
+  }
+
+  setTimeout(function(){
+    var req = hyperquest.post('http://127.0.0.1:8080/')
+    var file = fs.createReadStream(path.join(__dirname, 'package.json'))
+
+    file.pipe(req).pipe(concat(function(result){
+      stopServers()
+      console.log(result)
       t.end()
     }))
     req.on('error', function(err){
