@@ -142,25 +142,42 @@ tape('duplex mode', function(t){
     
   })
 
+  var seen = {
+    input:'',
+    server:'',
+    output:''
+  }
+
   var router = http.createServer(function(req, res){
     var duplex = backends.duplex(req, res)
 
     var inputFilter = through(function(chunk, enc, next){
-      console.log(chunk)
+      chunk = chunk.toString()
+      seen.input += chunk
+      chunk = chunk.replace(/\"/g, 'DOUBLEQUOTE')
+      this.push(chunk)
       next()
     })
-
 
     var outputFilter = through(function(chunk, enc, next){
-      console.log(chunk)
+      chunk = chunk.toString()
+      seen.output += chunk
+      chunk = chunk.replace(/TRIPLEQUOTE/g, '"')
+      this.push(chunk)
       next()
     })
 
-    req.pipe(inputFilter).pipe(proxy).pipe(outputFilter).pipe(res)
+    req.pipe(inputFilter).pipe(duplex).pipe(outputFilter).pipe(res)
   })
 
   var server = http.createServer(function(req, res){
-    req.pipe(res)
+    req.pipe(through(function(chunk, enc, next){
+      chunk = chunk.toString()
+      seen.server += chunk
+      chunk = chunk.replace(/DOUBLEQUOTE/g, 'TRIPLEQUOTE')
+      this.push(chunk)
+      next()
+    })).pipe(res)
   })
 
   router.listen(8080)
@@ -176,8 +193,17 @@ tape('duplex mode', function(t){
     var file = fs.createReadStream(path.join(__dirname, 'package.json'))
 
     file.pipe(req).pipe(concat(function(result){
+
+      var normal = result.toString()
+
+      var doubleString = normal.replace(/\"/g, 'DOUBLEQUOTE')
+      var tripleString = doubleString.replace(/DOUBLEQUOTE/g, 'TRIPLEQUOTE')
+
+      t.equal(seen.input, normal, 'input string')
+      t.equal(seen.server, doubleString, 'server string')
+      t.equal(seen.output, tripleString, 'output string')
+
       stopServers()
-      console.log(result)
       t.end()
     }))
     req.on('error', function(err){

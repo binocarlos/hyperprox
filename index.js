@@ -1,8 +1,8 @@
-
-
 var EventEmitter = require('events').EventEmitter
 var hyperquest = require('hyperquest')
 var util = require('util')
+var through = require('through2')
+var duplexify = require('duplexify')
 
 function HyperProxy(resolve){
 	EventEmitter.call(this)
@@ -16,25 +16,45 @@ function HyperProxy(resolve){
 
 util.inherits(HyperProxy, EventEmitter)
 
-HyperProxy.prototype.proxy = function(req, res, address){
+function checkResolveErrors(res, err, address){
+	if(err){
+		res.statusCode = 500
+		res.end(err)
+		return false
+	}
+	if(!address){
+		res.statusCode = 404
+		res.end('no backend found')
+		return false
+	}
+	return true
+}
+
+HyperProxy.prototype.proxy = function(req, res, address, input, output){
 	if(address.indexOf('http')!=0){
 		address = 'http://' + address
 	}
+	input = input || req
+	output = output || res
 	var proxy = hyperquest(address + req.url, {
 		method:req.method,
 		headers:req.headers
 	})
 	if(req.method=='GET'||req.method=='DELETE'){
-		proxy.pipe(res)
+		proxy.pipe(output)
 	}
 	else{
-		req.pipe(proxy).pipe(res)
+		input.pipe(proxy).pipe(output)
 	}
-	this.emit('proxy', req, res, address)
+	proxy.on('response', function(r){
+		res.statusCode = r.statusCode
+		res.headers = r.headers
+	})
 	proxy.on('error', function(err){
 		res.statusCode = 500
 		res.end(err.toString())
 	})
+	this.emit('proxy', req, res, address)
 }
 
 HyperProxy.prototype.resolve = function(req, done){
@@ -47,21 +67,31 @@ HyperProxy.prototype.resolve = function(req, done){
 	}
 }
 
+HyperProxy.prototype.duplex = function(req, res){
+	var self = this;
+	self.emit('request', req, res)
+
+	var input = through()
+	input.url = req.url
+	input.method = req.method
+	input.headers = req.headers || {}
+	var output = through()
+
+	self.resolve(req, function(err, address){
+		if(!checkResolveErrors(res, err, address)) return
+		self.emit('route', req, address)
+		self.proxy(req, res, address, input, output)
+	})
+
+	return duplexify(input, output)
+}
+
 HyperProxy.prototype.handler = function(){
 	var self = this;
 	return function(req, res){
 		self.emit('request', req, res)
 		self.resolve(req, function(err, address){
-			if(err){
-				res.statusCode = 500
-				res.end(err)
-				return
-			}
-			if(!address){
-				res.statusCode = 404
-				res.end('no backend found')
-				return
-			}
+			if(!checkResolveErrors(res, err, address)) return			
 			self.emit('route', req, address)
 			self.proxy(req, res, address)
 		})
