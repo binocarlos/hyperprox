@@ -213,3 +213,53 @@ tape('duplex mode', function(t){
 
   }, 100)
 })
+
+tape('duplex error', function(t){
+
+  var backends = hyperproxy(function(req, next){
+
+    setTimeout(function(){
+      next('routing error')
+    }, 100)
+    
+  })
+
+  var router = http.createServer(function(req, res){
+    var duplex = backends.duplex(req, res)
+    req.pipe(duplex).pipe(res)
+  })
+
+  var server = http.createServer(function(req, res){
+    res.end('wont get here')
+  })
+
+  router.listen(8080)
+  server.listen(8081)
+
+  function stopServers(){
+    router.close()
+    server.close()
+  }
+
+  setTimeout(function(){
+    var req = hyperquest.get('http://127.0.0.1:8080/')
+    
+    req.on('response', function(res){
+      t.equal(res.statusCode, 500, '500 statusCode')
+    })
+    req.pipe(concat(function(result){
+
+      var normal = result.toString()
+      t.equal(normal, 'routing error', 'error message')
+
+      stopServers()
+      t.end()
+    }))
+    req.on('error', function(err){
+      stopServers()
+      t.fail(err, 'error')
+      t.end()
+    })
+
+  }, 100)
+})
