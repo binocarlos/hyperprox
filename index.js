@@ -30,6 +30,7 @@ HyperProxy.prototype.proxy = function(req, res, address){
 	else{
 		req.pipe(proxy).pipe(res)
 	}
+	this.emit('proxy', req, res, address)
 	proxy.on('error', function(err){
 		res.statusCode = 500
 		res.end(err.toString())

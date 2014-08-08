@@ -16,20 +16,20 @@ Create a proxy by passing a function that will resolve what backend to use to th
 var http = require("http")
 var hyperprox = require('hyperprox')
 
-var proxy = hyperprox(function(req){
+var backends = hyperprox(function(req){
   // calculate the proxy destination
   var port = req.url=='/a' ? 8081 : 8082
   return 'http://127.0.0.1:' + port
 })
 
 // the front facing web server
-var router = http.createServer(proxy.handler())
+var router = http.createServer(backends.handler())
 
-proxy.on('request', function(req, res){
+backends.on('request', function(req, res){
 	
 })
 
-proxy.on('route', function(req, address){
+backends.on('route', function(req, address){
 	
 })
 
@@ -44,6 +44,37 @@ var serverB = http.createServer(function(req, res){
 router.listen(8080)
 serverA.listen(8081)
 serverB.listen(8082)
+```
+
+## streams
+
+We can generate a duplex stream for a request that will auto-route - this lets us filter the input and output:
+
+```js
+var through = require('through2')
+var backends = hyperprox(function(req){
+  var port = req.url=='/a' ? 8081 : 8082
+  return 'http://127.0.0.1:' + port
+})
+
+var router = http.createServer(function(req, res){
+	var proxy = backends.duplex(req)
+
+	// filter the request body
+	var inputFilter = through(function(chunk, enc, next){
+		this.push(chunk.toString() + 'a')
+		next()
+	})
+
+	// filter the response body
+	var outputFilter = through(function(chunk, enc, next){
+		this.push(chunk.toUpperCase())
+		next()
+	})
+
+	// REQUEST -> INPUT FILTER -> PROXY -> OUTPUT FILTER -> RESPONSE
+	req.pipe(inputFilter).pipe(proxy).pipe(outputFilter).pipe(res)
+})
 ```
 
 ## async routing
@@ -64,17 +95,40 @@ var proxy = hyperprox(function(req, next){
 
 ## api
 
-#### `var proxy = hyperprox(function(req, next){})`
+#### `var backends = hyperprox(function(req, next){})`
 
 Create a new proxy by passing a function that will resolve the backend address and pass it to the 'next' function
 
+#### `backends.handler()`
+
+Return a `function(req,res){}` that will proxy requests using the routing function
+
+#### `backends.proxy(req, res, address)`
+
+A direct proxy that will pipe req via address and to res
+
+#### `backends.resolve(req, done)`
+
+The resolving function that goes via the user supplied function
+
+#### `backends.duplex(req, res)`
+
+Return a duplex stream going through the backend - you can write it to the original request / response how you want:
+
+```js
+var duplex = backends.duplex(req, res)
+req.pipe(duplex).pipe(res)
+```
+
+If there is an error with routing the response will be set to 500 and the backend skipped
+
 ## events
 
-#### `proxy.on('request', function(req, res){})`
+#### `backends.on('request', function(req, res){})`
 
 when a request arrives at the proxy
 
-#### `proxy.on('route', function(req, address){})`
+#### `backends.on('route', function(req, address){})`
 
 Once a routing decision has been made
 
