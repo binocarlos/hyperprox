@@ -9,9 +9,13 @@ var hyperquest = require('hyperquest')
 var concat = require('concat-stream')
 
 function runRequest(path, done){
+  var headers = {}
   var req = hyperquest('http://127.0.0.1:8080' + path).pipe(concat(function(result){
-    done(null, result.toString())
+    done(null, result.toString(), headers)
   }))
+  req.on('response', function(res){
+    headers = res.headers
+  })
   req.on('error', done)
 }
 
@@ -39,10 +43,12 @@ tape('proxy the requests', function(t){
   })
 
   var serverA = http.createServer(function(req, res){
+    res.setHeader('x-server', 'A')
     res.end('serverA')
   })
 
   var serverB = http.createServer(function(req, res){
+    res.setHeader('x-server', 'B')
     res.end('serverB')
   })
 
@@ -51,13 +57,14 @@ tape('proxy the requests', function(t){
   serverB.listen(8082)
 
   setTimeout(function(){
-    runRequest('/a', function(err, result){
+    runRequest('/a', function(err, result, headers){
       if(err){
         t.fail(err, 'a')
         t.end()
         return
       }
       t.equal(result, 'serverA')
+      t.equal(headers['x-server', 'A'])
       runRequest('/b', function(err, result){
         if(err){
           t.fail(err, 'b')
@@ -65,6 +72,7 @@ tape('proxy the requests', function(t){
           return
         }
         t.equal(result, 'serverB')
+        t.equal(headers['x-server', 'B'])
         t.ok(reqs['/a'], 'req a')
         t.ok(reqs['/b'], 'req b')
         t.equal(routes['/a'], 'http://127.0.0.1:8081', 'route a')
