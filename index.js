@@ -15,14 +15,19 @@ function proxyfn(req, res, address, input, output){
 		headers:req.headers
 	})
 	if(req.method=='GET'||req.method=='DELETE'){
-		proxy.pipe(output)
+		
 	}
 	else{
-		input.pipe(proxy).pipe(output)
+		input.pipe(proxy)
 	}
 	proxy.on('response', function(r){
 		res.statusCode = r.statusCode
-		res.headers = r.headers
+
+		Object.keys(r.headers || {}).forEach(function(key){
+			res.setHeader(key, r.headers[key])
+		})
+
+		r.pipe(output)
 	})
 	proxy.on('error', function(err){
 		res.statusCode = 500
