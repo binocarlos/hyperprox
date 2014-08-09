@@ -4,6 +4,32 @@ var util = require('util')
 var through = require('through2')
 var duplexify = require('duplexify')
 
+function proxyfn(req, res, address, input, output){
+	if(address.indexOf('http')!=0){
+		address = 'http://' + address
+	}
+	input = input || req
+	output = output || res
+	var proxy = hyperquest(address + req.url, {
+		method:req.method,
+		headers:req.headers
+	})
+	if(req.method=='GET'||req.method=='DELETE'){
+		proxy.pipe(output)
+	}
+	else{
+		input.pipe(proxy).pipe(output)
+	}
+	proxy.on('response', function(r){
+		res.statusCode = r.statusCode
+		res.headers = r.headers
+	})
+	proxy.on('error', function(err){
+		res.statusCode = 500
+		res.end(err.toString())
+	})
+}
+
 function HyperProxy(resolve){
 	EventEmitter.call(this)
 	if(!resolve){
@@ -31,29 +57,7 @@ function checkResolveErrors(res, err, address){
 }
 
 HyperProxy.prototype.proxy = function(req, res, address, input, output){
-	if(address.indexOf('http')!=0){
-		address = 'http://' + address
-	}
-	input = input || req
-	output = output || res
-	var proxy = hyperquest(address + req.url, {
-		method:req.method,
-		headers:req.headers
-	})
-	if(req.method=='GET'||req.method=='DELETE'){
-		proxy.pipe(output)
-	}
-	else{
-		input.pipe(proxy).pipe(output)
-	}
-	proxy.on('response', function(r){
-		res.statusCode = r.statusCode
-		res.headers = r.headers
-	})
-	proxy.on('error', function(err){
-		res.statusCode = 500
-		res.end(err.toString())
-	})
+	proxyfn(req, res, address, input, output)
 	this.emit('proxy', req, res, address)
 }
 
@@ -101,3 +105,5 @@ HyperProxy.prototype.handler = function(){
 module.exports = function(resolve){
 	return new HyperProxy(resolve)
 }
+
+module.exports.proxy = proxyfn

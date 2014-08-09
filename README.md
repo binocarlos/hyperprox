@@ -95,6 +95,12 @@ var proxy = hyperprox(function(req, next){
 
 ## api
 
+#### `hyperprox.proxy(req, res, address, [input, output])`
+
+A direct proxy function that will send req via address to res
+
+Input and output are optional override streams to replace req and res
+
 #### `var backends = hyperprox(function(req, next){})`
 
 Create a new proxy by passing a function that will resolve the backend address and pass it to the 'next' function
@@ -103,9 +109,11 @@ Create a new proxy by passing a function that will resolve the backend address a
 
 Return a `function(req,res){}` that will proxy requests using the routing function
 
-#### `backends.proxy(req, res, address)`
+#### `backends.proxy(req, res, address, [input, output])`
 
 A direct proxy that will pipe req via address and to res
+
+If input and output are provided - they will be used as the streams rather than req and res
 
 #### `backends.resolve(req, done)`
 
