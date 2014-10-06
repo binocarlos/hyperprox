@@ -97,6 +97,45 @@ tape('proxy the requests', function(t){
 })
 
 
+tape('string based route', function(t){
+
+  var proxy = hyperproxy('http://127.0.0.1:8081')
+  var router = http.createServer(proxy.handler())
+
+  var reqs = {}
+  var routes = {}
+
+  proxy.on('request', function(req, res){
+    reqs[req.url] = true
+  })
+
+  proxy.on('route', function(req, address){
+    routes[req.url] = address
+  })
+
+  var serverA = http.createServer(function(req, res){
+    res.setHeader('x-server', 'A')
+    res.end('serverA')
+  })
+
+
+  function stopServers(){
+    router.close()
+    serverA.close()
+  }
+
+  router.listen(8080)
+  serverA.listen(8081)
+
+  setTimeout(function(){
+    runRequest('/a', function(err, result, headers){
+      t.equal(routes['/a'], 'http://127.0.0.1:8081', 'server A route')
+      t.equal(reqs['/a'], true, 'sever A req')
+      stopServers()
+      t.end()
+    })
+  }, 100)
+})
 
 tape('async router', function(t){
 

@@ -41,6 +41,13 @@ function HyperProxy(resolve){
 		throw new Error('resolve function required')
 	}
 
+	if(typeof(resolve)==='string'){
+		var address = resolve
+		resolve = function(req){
+			return address
+		}
+	}
+
 	this._resolve = resolve
 	this._isAsync = resolve.length>=2
 }
