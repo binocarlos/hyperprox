@@ -6,7 +6,7 @@ simple HTTP proxy based on [hyperquest](https://github.com/substack/hyperquest)
 ## install
 
 ```
-$ npm install hyperproxy
+$ npm install hyperprox
 ```
 
 ## usage
